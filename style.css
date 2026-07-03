@@ -816,3 +816,13 @@ dialog input:focus {
 .import-file-button:hover {
   background-color: #dbeafe;
 }
+
+#item-max-score::-webkit-outer-spin-button,
+#item-max-score::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#item-max-score {
+  appearance: textfield;
+}
