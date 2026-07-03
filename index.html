@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+
+<body>
+  <header class="main-header">
+    <button id="add-year-button" class="primary-button">
+      <span aria-hidden="true">+</span> Νέα χρονιά
+    </button>
+  </header>
+
+  <main class="page-container">
+    <section aria-labelledby="years-title">
+
+      <div id="years-container" class="years-grid"></div>
+
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon" aria-hidden="true"></div>
+        <h3> Δεν υπάρχει ακόμη σχολική χρονιά </h3>
+        <p> Πατήστε «Νέα χρονιά» για να ξεκινήσετε. </p>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="year-dialog">
+    <form id="year-form">
+      <h2>Προσθήκη σχολικής χρονιάς</h2>
+      <label for="year-name"> Όνομα χρονιάς </label>
+      <input id="year-name" type="text" placeholder="π.χ. 2026-2027" autocomplete="off" required>
+      <p id="year-error" class="error-message"></p>
+
+      <div class="import-section">
+      <div class="import-separator">
+      </div>
+
+      <label for="import-year-file" class="import-file-button">
+        ↑ Ανέβασμα από JSON
+      </label>
+
+      <input id="import-year-file" type="file" accept=".json,application/json" hidden>
+    </div>
+
+      <div class="dialog-actions">
+        <button type="button" id="cancel-year-button" class="secondary-button"> Ακύρωση </button>
+        <button type="submit" class="primary-button"> Αποθήκευση </button>
+      </div>
+
+
+    </form>
+  </dialog>
+
+  <dialog id="section-dialog">
+    <form id="section-form">
+      <h2> Προσθήκη τμήματος </h2>
+
+      <label for="section-name"> Όνομα τμήματος </label>
+
+      <input id="section-name" type="text" placeholder="π.χ. Α1" autocomplete="off" required>
+
+      <p id="section-error" class="error-message"></p>
+
+      <div class="import-section">
+        <div class="import-separator">
+        </div>
+
+        <label for="import-section-file" class="import-file-button">
+          ↑ Ανέβασμα από JSON
+        </label>
+
+        <input id="import-section-file" type="file" accept=".json,application/json" hidden>
+
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" id="cancel-section-button" class="secondary-button"> Ακύρωση </button>
+
+        <button type="submit" class="primary-button"> Αποθήκευση </button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> Τμήμα </title>
+  <link rel="stylesheet" href="style.css">
+  <script src="section.js" defer></script>
+</head>
+<body>
+  <header class="main-header section-header-main">
+    <div>
+      <a href="index.html" class="back-link"> ← Πίσω </a>
+      <h1 id="section-title"> Τμήμα </h1>
+      <p id="year-title"> </p>
+    </div>
+  </header>
+
+  <main class="page-container section-page">
+    <nav class="section-tabs" aria-label="Επιλογές τμήματος">
+      <button class="tab-button active" data-tab="statistics"> Στατιστικά μαθητών </button>
+      <button class="tab-button" data-tab="absences"> Απουσίες </button>
+      <button class="tab-button" data-tab="exams"> Γραπτά </button>
+      <button class="tab-button" data-tab="exercises"> Ασκήσεις </button>
+      <button class="tab-button" data-tab="participation"> Συμμετοχή </button>
+    </nav>
+
+    <section id="statistics-panel" class="tab-panel active" data-panel="statistics">
+      <div class="panel-heading">
+        <div> <h2> Στατιστικά μαθητών </h2> </div>
+      </div>
+      
+      <div
+        id="statistics-hidden-columns"
+        class="hidden-columns-bar"
+        hidden
+      ></div>
+      
+      <div class="data-table-wrapper">
+        <table class="data-table summary-table">
+          <thead id="statistics-head"></thead>
+          <tbody id="statistics-body"></tbody>
+        </table>
+      </div>
+
+      <button id="add-student-button" class="floating-add-button" type="button" aria-label="Προσθήκη μαθητή">+</button>
+    </section>
+
+    <section id="absences-panel" class="tab-panel" data-panel="absences">
+      <div class="panel-heading">
+        <div>
+          <h2> Απουσίες </h2>
+        </div>
+        <button class="primary-action-button" data-add-item="absences" type="button"> + Ημερομηνία </button>
+      </div>
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead id="absences-head"></thead>
+          <tbody id="absences-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="exams-panel" class="tab-panel" data-panel="exams">
+      <div class="panel-heading">
+        <div>
+          <h2> Γραπτά </h2>
+        </div>
+        <button class="primary-action-button" data-add-item="exams" type="button"> + Γραπτό </button>
+      </div>
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead id="exams-head"></thead>
+          <tbody id="exams-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="exercises-panel" class="tab-panel" data-panel="exercises">
+      <div class="panel-heading">
+        <div>
+          <h2> Ασκήσεις </h2>
+        </div>
+        <button class="primary-action-button" data-add-item="exercises" type="button">+ Άσκηση </button>
+      </div>
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead id="exercises-head"></thead>
+          <tbody id="exercises-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="participation-panel" class="tab-panel" data-panel="participation">
+      <div class="panel-heading">
+        <div>
+          <h2> Συμμετοχή </h2>
+        </div>
+        <button class="primary-action-button" data-add-item="participation" type="button">+ Ημερομηνία </button>
+      </div>
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead id="participation-head"></thead>
+          <tbody id="participation-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="student-dialog">
+    <form id="student-form">
+      <h2> Προσθήκη μαθητή </h2>
+      <label for="student-name"> Ονοματεπώνυμο </label>
+      <input id="student-name" type="text" autocomplete="off" required >
+      <p id="student-error" class="error-message"></p>
+      <div class="dialog-actions">
+        <button id="cancel-student-button" class="secondary-button" type="button"> Ακύρωση </button>
+        <button class="primary-button" type="submit"> Αποθήκευση </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="item-dialog">
+    <form id="item-form">
+      <h2 id="item-dialog-title"> Νέα καταχώριση </h2>
+
+      <label for="item-title"> Ημερομηνία ή τίτλος </label>
+      <input id="item-title" type="text" autocomplete="off">
+
+      <div id="item-type-field">
+        <label for="item-type"> Τύπος </label>
+        <input id="item-type" type="text" list="item-type-options" placeholder="Επιλέξτε ή γράψτε νέο τύπο" autocomplete="off">
+        <datalist id="item-type-options"></datalist>
+      </div>
+
+      <div id="item-max-score-field" hidden>
+        <label for="item-max-score">Μέγιστη βαθμολογία</label>
+
+        <input id="item-max-score" type="number" min="0.01" step="0.01" value="20" placeholder="π.χ. 20 ή 100">
+      </div>
+      
+      <p id="item-error" class="error-message"></p>
+      
+      <div class="dialog-actions">
+        <button id="cancel-item-button" class="secondary-button" type="button">Ακύρωση</button>
+        <button id="save-item-button" class="primary-button" type="submit">Προσθήκη</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="student-details-dialog" class="student-details-dialog">
+    <div class="student-details-content">
+      <div class="student-details-header">
+      <div>
+        <div class="student-title-row">
+          <h2 id="student-details-title"> Αναλυτικά στοιχεία μαθητή </h2>
+          <button id="edit-student-name-button" class="edit-student-name-button" type="button"> Αλλαγή ονόματος </button>
+        </div>
+        <p id="student-details-summary"> </p>
+      </div>
+        <button id="close-student-details-button" class="dialog-close-button" type="button" aria-label="Κλείσιμο">×</button>
+      </div>
+      <div id="student-details-body"></div>
+    </div>
+  </dialog>
+
+  <dialog id="edit-student-dialog">
+  <form id="edit-student-form">
+    <h2>Αλλαγή ονόματος μαθητή</h2>
+    <label for="edit-student-name"> Ονοματεπώνυμο </label>
+    <input id="edit-student-name" type="text" autocomplete="off">
+
+    <p id="edit-student-error" class="error-message" ></p>
+
+    <div class="dialog-actions">
+      <button id="cancel-edit-student-button" class="secondary-button" type="button"> Ακύρωση </button>
+      <button class="primary-button" type="submit"> Αποθήκευση </button>
+    </div>
+  </form>
+</dialog>
+
+</body>
+</html>
