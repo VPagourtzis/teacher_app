@@ -826,3 +826,78 @@ dialog input:focus {
 #item-max-score {
   appearance: textfield;
 }
+
+.cell-select {
+  font-weight: 700;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* Ασκήσεις: Ναι */
+.cell-select.value-yes {
+  background-color: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+/* Ασκήσεις: Όχι */
+.cell-select.value-no {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+/* Απουσίες: Παρών */
+.cell-select.value-present {
+  background-color: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+/* Απουσίες: Δικαιολογημένη */
+.cell-select.value-justified {
+  background-color: #ffedd5;
+  border-color: #fdba74;
+  color: #9a3412;
+}
+
+/* Απουσίες: Αδικαιολόγητη */
+.cell-select.value-unjustified {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+/* Καμία καταχώριση */
+.cell-select.value-empty {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+
+.history-status {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-weight: 700;
+}
+
+.status-yes,
+.status-present {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-no,
+.status-unjustified {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.status-justified {
+  background-color: #ffedd5;
+  color: #9a3412;
+}

@@ -456,7 +456,13 @@ function createCellControl(category, student, record) {
 
 function connectTableControls() {
   for (const select of document.querySelectorAll(".cell-select")) {
-    select.onchange = () => {updateStudentValue(select.dataset.category, select.dataset.studentId, select.dataset.recordId, select.value);};
+    updateSelectColor(select);
+
+    select.onchange = () => {
+      updateSelectColor(select);
+      updateStudentValue(select.dataset.category, select.dataset.studentId, select.dataset.recordId, select.value);
+    };
+
     select.onkeydown = handleTableArrowNavigation;
   }
 
@@ -851,16 +857,6 @@ function createHistorySection(title, category, student) {
             : ""
         }
 
-        ${
-          category === "exams"
-            ? `
-              <td>
-                ${formatNumber(record.maxScore ?? 20)}
-              </td>
-            `
-            : ""
-        }
-
         <td>
           ${formatHistoryValue(
             category,
@@ -868,6 +864,7 @@ function createHistorySection(title, category, student) {
             record
           )}
         </td>
+
       </tr>
     `;
   }).join("");
@@ -901,14 +898,9 @@ function createHistorySection(title, category, student) {
                         ? "<th>Τύπος</th>"
                         : ""
                     }
-
-                    ${
-                      category === "exams"
-                        ? "<th>Μέγιστο</th>"
-                        : ""
-                    }
-
                     <th>${valueHeader}</th>
+
+                    
                   </tr>
                 </thead>
               `
@@ -929,19 +921,39 @@ function formatHistoryValue(category, value, record = null) {
 
   if (category === "absences") {
     return {
-      present: "Παρών",
-      justified: "Δικαιολογημένη απουσία",
-      unjustified: "Αδικαιολόγητη απουσία"
+      present: `
+        <span class="history-status status-present">
+          Παρών
+        </span>
+      `,
+      justified: `
+        <span class="history-status status-justified">
+          Δικαιολογημένη απουσία
+        </span>
+      `,
+      unjustified: `
+        <span class="history-status status-unjustified">
+          Αδικαιολόγητη απουσία
+        </span>
+      `
     }[value] || "−";
   }
 
   if (category === "exercises") {
     if (value === "yes") {
-      return "✓ Ναι";
+      return `
+        <span class="history-status status-yes">
+          ✓ Ναι
+        </span>
+      `;
     }
 
     if (value === "no") {
-      return "✕ Όχι";
+      return `
+        <span class="history-status status-no">
+          ✕ Όχι
+        </span>
+      `;
     }
 
     return "−";
@@ -949,17 +961,16 @@ function formatHistoryValue(category, value, record = null) {
 
   if (category === "exams") {
     const maxScore = Number(record?.maxScore ?? 20);
+    const grade = Number(value);
 
-    const normalizedGrade = normalizeExamGrade(
-      value,
-      maxScore
-    );
-
-    if (normalizedGrade === null) {
+    if (
+      !Number.isFinite(grade) ||
+      !Number.isFinite(maxScore)
+    ) {
       return "−";
     }
 
-    return `${formatNumber(Number(value))}/${formatNumber(maxScore)} (${formatNumber(normalizedGrade)}/20)`;
+    return `${formatNumber(grade)}/${formatNumber(maxScore)}`;
   }
 
   return escapeHtml(String(value));
@@ -999,7 +1010,10 @@ function normalizeExamGrade(value, maxScore) {
 }
 
 function calculateExamAverage(student, type) {
-  const relevantRecords = section.records.exams.filter(record => record.type === type);
+  const relevantRecords = section.records.exams.filter(record => {
+  const recordType = record.type?.trim() || "-";
+    return recordType === type;
+  });
 
   const normalizedGrades = [];
 
@@ -1057,10 +1071,30 @@ function calculateOverallExamAverage(student) {
 
 
 function calculateExerciseFraction(student, type) {
-  const recordIds = section.records.exercises.filter(record => record.type === type).map(record => record.id);
-  const values = recordIds.map(id => student.exercises[id]).filter(value => value === "yes" || value === "no");
-  const yesCount = values.filter(value => value === "yes").length;
-  return values.length ? `${yesCount}/${values.length}` : "−";
+  const recordIds =
+    section.records.exercises
+      .filter(record => {
+        const recordType =
+          record.type?.trim() || "Χωρίς τύπο";
+
+        return recordType === type;
+      })
+      .map(record => record.id);
+
+  const values = recordIds
+    .map(id => student.exercises[id])
+    .filter(
+      value =>
+        value === "yes" ||
+        value === "no"
+    );
+
+  const yesCount =
+    values.filter(value => value === "yes").length;
+
+  return values.length
+    ? `${yesCount}/${values.length}`
+    : "−";
 }
 
 function calculateOverallExerciseFraction(student) {
@@ -1083,7 +1117,13 @@ function calculateAbsences(student) {
 }
 
 function uniqueTypes(records) {
-  return [...new Set(records.map(record => record.type).filter(Boolean))];
+  return [
+    ...new Set(
+      records.map(record =>
+        record.type?.trim() || "-"
+      )
+    )
+  ];
 }
 
 function formatAverage(value) {
@@ -1251,7 +1291,31 @@ function updateModificationDates() {
   year.updatedAt = now;
 }
 
+function updateSelectColor(select) {
+  select.classList.remove(
+    "value-yes",
+    "value-no",
+    "value-present",
+    "value-justified",
+    "value-unjustified",
+    "value-empty"
+  );
 
+  const classByValue = {
+    yes: "value-yes",
+    no: "value-no",
+    present: "value-present",
+    justified: "value-justified",
+    unjustified: "value-unjustified",
+    "-": "value-empty"
+  };
+
+  const className = classByValue[select.value];
+
+  if (className) {
+    select.classList.add(className);
+  }
+}
 
 function escapeHtml(value) {
   return String(value)
