@@ -202,14 +202,28 @@ function renderYears() {
 
             <div class="card-actions">
             <button
-              type="button"
-              class="download-button download-section-button"
-              data-year-id="${year.id}"
-              data-section-id="${section.id}"
+            type="button"
+            class="download-button download-year-button"
+            data-year-id="${year.id}"
+            aria-label="Λήψη JSON"
+            title="Λήψη JSON"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              aria-hidden="true"
             >
-              Κατέβασμα
-            </button>
-
+              <path
+                d="M12 3v12m0 0 5-5m-5 5-5-5M5 19h14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
             <button
               type="button"
               class="section-delete-button"
@@ -244,12 +258,28 @@ function renderYears() {
 
         <div class="card-actions">
           <button
-            type="button"
-            class="download-button download-year-button"
-            data-year-id="${year.id}"
+          type="button"
+          class="download-button download-year-button"
+          data-year-id="${year.id}"
+          aria-label="Λήψη JSON"
+          title="Λήψη JSON"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            aria-hidden="true"
           >
-            Κατέβασμα
-          </button>
+            <path
+              d="M12 3v12m0 0 5-5m-5 5-5-5M5 19h14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
 
           <button
             type="button"

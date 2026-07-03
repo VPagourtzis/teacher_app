@@ -1120,7 +1120,7 @@ function uniqueTypes(records) {
   return [
     ...new Set(
       records.map(record =>
-        record.type?.trim() || "-"
+        record.type?.trim() || "(-)"
       )
     )
   ];
