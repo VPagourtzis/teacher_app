@@ -961,3 +961,473 @@ dialog input:focus {
 .back-link svg {
   flex: 0 0 auto;
 }
+
+/* Κοινή ημερομηνία για Απουσίες, Ασκήσεις και Συμμετοχή */
+.date-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  background: white;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.date-toolbar label {
+  display: block;
+  margin-bottom: 5px;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.date-toolbar p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.date-toolbar input[type="date"] {
+  flex: 0 0 auto;
+  min-width: 180px;
+  padding: 11px 13px;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #1f2937;
+  font: inherit;
+  font-weight: 700;
+}
+
+.date-toolbar input[type="date"]:focus {
+  border-color: #2457a6;
+  outline: 3px solid rgba(36, 87, 166, 0.15);
+}
+
+#item-title-field[hidden],
+#item-max-score-field[hidden],
+#item-exercise-count-field[hidden] {
+  display: none;
+}
+
+#item-type-field,
+#item-max-score-field,
+#item-exercise-count-field {
+  margin-top: 16px;
+}
+
+.exercise-count-select {
+  min-width: 78px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .date-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .date-toolbar input[type="date"] {
+    width: 100%;
+  }
+}
+
+.date-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.all-dates-button {
+  padding: 11px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+}
+
+.all-dates-button.active {
+  border-color: #2457a6;
+  background: #2457a6;
+  color: white;
+}
+
+@media (max-width: 700px) {
+  .date-filter-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .all-dates-button {
+    width: 100%;
+  }
+}
+
+
+/* Γρήγορη αλλαγή σχολικής χρονιάς και τμήματος */
+.history-navigation {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.history-navigation-field {
+  display: grid;
+  gap: 6px;
+}
+
+.history-navigation-field label {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.history-navigation-field select {
+  min-width: 170px;
+  padding: 10px 36px 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 8px;
+  background-color: white;
+  color: #1f2937;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.history-navigation-field select:focus {
+  outline: 3px solid rgba(255, 255, 255, 0.3);
+  outline-offset: 2px;
+}
+
+.history-navigation-field select:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@media (max-width: 800px) {
+  .history-navigation {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+    margin-left: 0;
+  }
+
+  .history-navigation-field select {
+    width: 100%;
+  }
+}
+
+
+/* Εισαγωγή μαθητών από Excel */
+.student-import-section {
+  margin-top: 20px;
+}
+
+.student-import-section .import-separator {
+  margin-bottom: 14px;
+}
+
+.student-import-section .import-separator span {
+  flex: 0 0 auto;
+}
+
+.student-excel-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #b9c8dc;
+  border-radius: 8px;
+  background: #f4f8fd;
+  color: #2457a6;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.student-excel-button:hover {
+  background: #eaf1fb;
+}
+
+.student-import-help {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.student-import-status {
+  min-height: 18px;
+  margin: 8px 0 0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.student-import-status.success {
+  color: #166534;
+}
+
+.student-import-status.error {
+  color: #b91c1c;
+}
+
+/* Απόκρυψη καταχωρίσεων χωρίς διαγραφή */
+.column-heading {
+  padding-right: 58px;
+}
+
+.column-action-buttons {
+  position: absolute;
+  top: -8px;
+  right: -7px;
+  display: flex;
+  gap: 4px;
+}
+
+.column-action-buttons .remove-column-button,
+.hide-record-button {
+  position: static;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hide-record-button {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.hide-record-button:hover {
+  background: #cbd5e1;
+}
+
+.hidden-records-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid #dbe2ea;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+
+.hidden-records-bar[hidden] {
+  display: none;
+}
+
+.hidden-records-label {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.show-record-button {
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: white;
+  color: #2457a6;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.show-record-button:hover {
+  background: #eaf1fb;
+}
+
+/* Βελτιώσεις για κινητά */
+@media (max-width: 700px) {
+  .page-container {
+    width: min(100% - 16px, 1100px);
+    margin: 16px auto;
+  }
+
+  .main-header {
+    gap: 18px;
+    padding: 18px 14px;
+  }
+
+  .section-header-main > div:first-child {
+    width: 100%;
+  }
+
+  .section-header-main h1 {
+    font-size: 23px;
+    overflow-wrap: anywhere;
+  }
+
+  .history-navigation {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .history-navigation-field select {
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .date-toolbar {
+    padding: 14px;
+  }
+
+  .section-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    margin-inline: -8px;
+    padding: 7px;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .tab-button {
+    min-height: 42px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .tab-panel {
+    min-height: 360px;
+    padding: 14px 10px 18px;
+  }
+
+  .panel-heading {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .panel-heading h2 {
+    margin-bottom: 0;
+    font-size: 21px;
+  }
+
+  .primary-action-button {
+    min-height: 44px;
+  }
+
+  .data-table-wrapper {
+    border-radius: 8px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-inline: contain;
+  }
+
+  .data-table {
+    min-width: 620px;
+  }
+
+  .data-table th,
+  .data-table td {
+    min-width: 112px;
+    padding: 9px 7px;
+  }
+
+  .sticky-name-column {
+    min-width: 145px !important;
+    max-width: 145px;
+  }
+
+  .student-details-button,
+  .student-row-heading {
+    overflow-wrap: anywhere;
+  }
+
+  .cell-select,
+  .grade-input {
+    min-width: 88px;
+    min-height: 42px;
+    padding: 8px 5px;
+    font-size: 16px;
+  }
+
+  .column-heading {
+    padding-top: 18px;
+    padding-right: 0;
+  }
+
+  .column-action-buttons {
+    top: -6px;
+    right: 50%;
+    transform: translateX(50%);
+  }
+
+  .floating-add-button {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    left: auto;
+    z-index: 20;
+    width: 54px;
+    height: 54px;
+  }
+
+  dialog {
+    width: calc(100% - 20px);
+    max-height: calc(100dvh - 20px);
+    overflow: auto;
+  }
+
+  dialog form,
+  .student-details-content {
+    padding: 18px 15px;
+  }
+
+  .dialog-actions {
+    position: sticky;
+    bottom: 0;
+    margin-inline: -15px;
+    padding: 12px 15px 2px;
+    background: white;
+  }
+
+  .dialog-actions button {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .student-details-header {
+    gap: 10px;
+  }
+
+  .hidden-records-bar,
+  .hidden-columns-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .show-record-button,
+  .show-statistics-column-button {
+    width: 100%;
+    min-height: 40px;
+    text-align: left;
+  }
+}
+
+@media (max-width: 420px) {
+  .data-table {
+    min-width: 560px;
+  }
+
+  .sticky-name-column {
+    min-width: 125px !important;
+    max-width: 125px;
+  }
+
+  .back-link span {
+    display: none;
+  }
+}

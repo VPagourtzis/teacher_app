@@ -14,21 +14,23 @@ let section = year?.sections.find(currentSection => currentSection.id === sectio
 if (!year || !section) {
   alert("Το τμήμα δεν βρέθηκε.");
   window.location.href = "index.html";
-} else {
-  initialiseSectionData();
-  sectionTitle.textContent = section.name;
-  yearTitle.textContent = `Σχολική χρονιά: ${year.name}`;
-  document.title = `${section.name} - ${year.name}`;
-  renderAll();
 }
 
 const studentDialog = document.getElementById("student-dialog");
 const studentForm = document.getElementById("student-form");
 const studentNameInput = document.getElementById("student-name");
 const studentError = document.getElementById("student-error");
+const studentExcelFileInput = document.getElementById("student-excel-file");
+const studentImportStatus = document.getElementById("student-import-status");
 const itemDialog = document.getElementById("item-dialog");
 const itemForm = document.getElementById("item-form");
 const itemTitleInput = document.getElementById("item-title");
+const itemTitleField = document.getElementById("item-title-field");
+const workingDateInput = document.getElementById("working-date");
+const showAllDatesButton = document.getElementById("show-all-dates-button");
+const dateFilterDescription = document.getElementById("date-filter-description");
+const yearSelector = document.getElementById("year-selector");
+const sectionSelector = document.getElementById("section-selector");
 const itemTypeInput = document.getElementById("item-type");
 const itemTypeField = document.getElementById("item-type-field");
 const itemTypeOptions = document.getElementById("item-type-options");
@@ -40,6 +42,8 @@ const itemDialogTitle = document.getElementById("item-dialog-title");
 const itemError = document.getElementById("item-error");
 const itemMaxScoreField = document.getElementById("item-max-score-field");
 const itemMaxScoreInput = document.getElementById("item-max-score");
+const itemExerciseCountField = document.getElementById("item-exercise-count-field");
+const itemExerciseCountInput = document.getElementById("item-exercise-count");
 const saveItemButton = document.getElementById("save-item-button");
 const editStudentNameButton = document.getElementById("edit-student-name-button");
 const editStudentDialog = document.getElementById("edit-student-dialog");
@@ -52,6 +56,29 @@ let activeItemCategory = null;
 let editingRecordId = null;
 let selectedStudentId = null;
 
+workingDateInput.value = "";
+
+if (year && section) {
+  initialiseSectionData();
+  sectionTitle.textContent = section.name;
+  yearTitle.textContent = `Σχολική χρονιά: ${year.name}`;
+  document.title = `${section.name} - ${year.name}`;
+  initialiseHistoryNavigation();
+  updateDateFilterInterface();
+  renderAll();
+}
+
+workingDateInput.addEventListener("change", () => {
+  updateDateFilterInterface();
+  renderAll();
+});
+
+showAllDatesButton.addEventListener("click", () => {
+  workingDateInput.value = "";
+  updateDateFilterInterface();
+  renderAll();
+});
+
 for (const button of document.querySelectorAll(".tab-button")) {
   button.addEventListener("click", () => openTab(button.dataset.tab));
 }
@@ -59,12 +86,42 @@ for (const button of document.querySelectorAll(".tab-button")) {
 document.getElementById("add-student-button").addEventListener("click", () => {
   studentForm.reset();
   studentError.textContent = "";
+  studentImportStatus.textContent = "";
+  studentImportStatus.className = "student-import-status";
   studentDialog.showModal();
   studentNameInput.focus();
 });
 
 document.getElementById("cancel-student-button").addEventListener("click", () => {
   studentDialog.close();
+});
+
+studentExcelFileInput.addEventListener("change", async () => {
+  const file = studentExcelFileInput.files?.[0];
+
+  if (!file) return;
+
+  studentImportStatus.textContent = "Γίνεται ανάγνωση του αρχείου…";
+  studentImportStatus.className = "student-import-status";
+
+  try {
+    const result = await importStudentsFromExcel(file);
+
+    studentImportStatus.classList.add("success");
+    studentImportStatus.textContent =
+      `Προστέθηκαν ${result.added} μαθητές.` +
+      (result.duplicates > 0 ? ` Παραλείφθηκαν ${result.duplicates} διπλότυπα.` : "");
+
+    if (result.added > 0) {
+      renderAll();
+    }
+  } catch (error) {
+    console.error(error);
+    studentImportStatus.classList.add("error");
+    studentImportStatus.textContent = error.message || "Δεν ήταν δυνατή η εισαγωγή του αρχείου.";
+  } finally {
+    studentExcelFileInput.value = "";
+  }
 });
 
 studentForm.addEventListener("submit", event => {
@@ -81,7 +138,7 @@ studentForm.addEventListener("submit", event => {
     return;
   }
 
-  section.students.push({id: createId(), name, absences: {}, exams: {}, exercises: {}, participation: {}});
+  section.students.push(createEmptyStudent(name));
 
   saveYears();
   studentDialog.close();
@@ -146,7 +203,16 @@ editStudentForm.addEventListener("submit", function (event) {
 );
 
 for (const button of document.querySelectorAll("[data-add-item]")) {
-  button.addEventListener("click", () => openItemDialog(button.dataset.addItem));
+  button.addEventListener("click", () => {
+    const category = button.dataset.addItem;
+
+    if (category === "absences" || category === "participation") {
+      addDatedRecord(category);
+      return;
+    }
+
+    openItemDialog(category);
+  });
 }
 
 document.getElementById("cancel-item-button").addEventListener("click", () => {
@@ -164,14 +230,43 @@ itemForm.addEventListener("submit", event => {
   
   event.preventDefault();
 
-  const title = itemTitleInput.value.trim();
+  const selectedDate = workingDateInput.value;
+  const existingRecord = editingRecordId !== null
+    ? section.records[activeItemCategory].find(item => item.id === editingRecordId)
+    : null;
+  const effectiveDate = selectedDate || (existingRecord ? getRecordDate(existingRecord) : "");
+  const title = activeItemCategory === "exams"
+    ? itemTitleInput.value.trim()
+    : (existingRecord?.title || formatDateForDisplay(effectiveDate));
   const type = itemTypeInput.value.trim();
 
   let maxScore = null;
+  let maxExercises = null;
 
   if (activeItemCategory === "exams") {
     const rawMaxScore = itemMaxScoreInput.value.trim().replace(",", ".");
     maxScore = Number(rawMaxScore);
+  }
+
+  if (activeItemCategory === "exercises") {
+    maxExercises = Number(itemExerciseCountInput.value);
+
+    if (!Number.isInteger(maxExercises) || maxExercises < 1) {
+      itemError.textContent = "Το πλήθος ασκήσεων πρέπει να είναι μεγαλύτερο του 0.";
+      return;
+    }
+
+    const normalizedType = type.toLocaleLowerCase("el");
+    const duplicateExercise = section.records.exercises.some(record =>
+      record.id !== editingRecordId &&
+      getRecordDate(record) === effectiveDate &&
+      String(record.type || "").trim().toLocaleLowerCase("el") === normalizedType
+    );
+
+    if (duplicateExercise) {
+      itemError.textContent = "Υπάρχει ήδη καταχώριση ασκήσεων αυτού του τύπου για την ημερομηνία.";
+      return;
+    }
   }
 
   if (editingRecordId !== null) {
@@ -199,10 +294,25 @@ itemForm.addEventListener("submit", event => {
       record.maxScore = maxScore;
     }
 
+    if (activeItemCategory === "exercises") {
+      const highestExistingValue = getHighestExerciseValue(editingRecordId);
+
+      if (highestExistingValue !== null && maxExercises < highestExistingValue) {
+        itemError.textContent = `Υπάρχει ήδη μαθητής με ${highestExistingValue} ασκήσεις. Το πλήθος δεν μπορεί να γίνει μικρότερο.`;
+        return;
+      }
+
+      record.maxExercises = maxExercises;
+    }
+
   } else {
     const newRecord = {id: createId(), title: title, type: activeItemCategory === "exams" || activeItemCategory === "exercises" ? type : ""};
     if (activeItemCategory === "exams") {
       newRecord.maxScore = maxScore;
+    }
+    if (activeItemCategory === "exercises") {
+      newRecord.maxExercises = maxExercises;
+      newRecord.date = effectiveDate;
     }
     section.records[activeItemCategory].push(newRecord);
   }
@@ -242,6 +352,10 @@ function initialiseSectionData() {
 
   for (const category of ["absences", "exams", "exercises", "participation"]) {
     if (!Array.isArray(section.records[category])) section.records[category] = [];
+
+    for (const record of section.records[category]) {
+      if (typeof record.hidden !== "boolean") record.hidden = false;
+    }
   }
   
   for (const examRecord of section.records.exams) {
@@ -250,11 +364,22 @@ function initialiseSectionData() {
     }
   }
 
+  for (const exerciseRecord of section.records.exercises) {
+    if (!Number.isInteger(Number(exerciseRecord.maxExercises)) || Number(exerciseRecord.maxExercises) < 1) {
+      exerciseRecord.maxExercises = 1;
+    }
+  }
+
   for (const student of section.students) {
     for (const category of ["absences", "exams", "exercises", "participation"]) {
       if (!student[category] || typeof student[category] !== "object" || Array.isArray(student[category])) {
         student[category] = {};
       }
+    }
+
+    for (const record of section.records.exercises) {
+      if (student.exercises[record.id] === "yes") student.exercises[record.id] = 1;
+      if (student.exercises[record.id] === "no") student.exercises[record.id] = 0;
     }
   }
 
@@ -277,6 +402,15 @@ function openTab(tabName) {
 }
 
 function openItemDialog(category) {
+  if (category === "exercises") {
+    const dateValue = workingDateInput.value;
+    if (!dateValue) {
+      alert("Επιλέξτε συγκεκριμένη ημερομηνία από το ημερολόγιο.");
+      workingDateInput.focus();
+      return;
+    }
+
+  }
 
   activeItemCategory = category;
   editingRecordId = null;
@@ -286,53 +420,71 @@ function openItemDialog(category) {
   saveItemButton.textContent = "Προσθήκη";
 
   const settings = {
-    absences: {
-      title: "Νέα ημερομηνία απουσιών",
-      placeholder: "π.χ. 03/07/2026",
-      showType: false,
-      showMaxScore: false
-    },
-
     exams: {
       title: "Νέο γραπτό",
-      placeholder: "π.χ. 1ο τεστ ή 03/07/2026",
+      placeholder: "π.χ. 1ο τεστ",
+      showTitle: true,
       showType: true,
-      showMaxScore: true
+      showMaxScore: true,
+      showExerciseCount: false
     },
-
     exercises: {
-      title: "Νέα άσκηση",
-      placeholder: "π.χ. Άσκηση 5 ή 03/07/2026",
+      title: `Νέα καταχώριση ασκήσεων — ${formatDateForDisplay(workingDateInput.value)}`,
+      placeholder: "",
+      showTitle: false,
       showType: true,
-      showMaxScore: false
-    },
-
-    participation: {
-      title: "Νέα ημερομηνία συμμετοχής",
-      placeholder: "π.χ. 03/07/2026",
-      showType: false,
-      showMaxScore: false
+      showMaxScore: false,
+      showExerciseCount: true
     }
   };
 
   const setting = settings[category];
+  if (!setting) return;
 
   itemDialogTitle.textContent = setting.title;
   itemTitleInput.placeholder = setting.placeholder;
-
+  itemTitleField.hidden = !setting.showTitle;
   itemTypeField.hidden = !setting.showType;
   itemMaxScoreField.hidden = !setting.showMaxScore;
+  itemExerciseCountField.hidden = !setting.showExerciseCount;
 
   populateTypeOptions(category);
-
   itemTypeInput.value = "";
 
-  if (category === "exams") {
-    itemMaxScoreInput.value = "20";
-  }
+  if (category === "exams") itemMaxScoreInput.value = "20";
+  if (category === "exercises") itemExerciseCountInput.value = "1";
 
   itemDialog.showModal();
-  itemTitleInput.focus();
+  (setting.showTitle ? itemTitleInput : itemExerciseCountInput).focus();
+}
+
+function addDatedRecord(category) {
+  const dateValue = workingDateInput.value;
+
+  if (!dateValue) {
+    alert("Επιλέξτε συγκεκριμένη ημερομηνία από το ημερολόγιο.");
+    workingDateInput.focus();
+    return;
+  }
+
+  const duplicate = section.records[category].some(record =>
+    record.date === dateValue || record.title === formatDateForDisplay(dateValue)
+  );
+
+  if (duplicate) {
+    alert("Υπάρχει ήδη καταχώριση για αυτή την ημερομηνία.");
+    return;
+  }
+
+  section.records[category].push({
+    id: createId(),
+    title: formatDateForDisplay(dateValue),
+    date: dateValue,
+    type: ""
+  });
+
+  saveYears();
+  renderAll();
 }
 
 function openEditRecordDialog(category, recordId) {
@@ -350,17 +502,19 @@ function openEditRecordDialog(category, recordId) {
   saveItemButton.textContent = "Αποθήκευση αλλαγών";
 
   const settings = {
-    absences: {title: "Επεξεργασία ημερομηνίας απουσιών", showType: false, showMaxScore: false},
-    exams: {title: "Επεξεργασία γραπτού", showType: true, showMaxScore: true},
-    exercises: {title: "Επεξεργασία άσκησης", showType: true, showMaxScore: false},
-    participation: {title: "Επεξεργασία συμμετοχής", showType: false, showMaxScore: false}
+    exams: {title: "Επεξεργασία γραπτού", showTitle: true, showType: true, showMaxScore: true, showExerciseCount: false},
+    exercises: {title: `Επεξεργασία ασκήσεων — ${record.title || ""}`, showTitle: false, showType: true, showMaxScore: false, showExerciseCount: true}
   };
 
   const setting = settings[category];
 
+  if (!setting) return;
+
   itemDialogTitle.textContent = setting.title;
+  itemTitleField.hidden = !setting.showTitle;
   itemTypeField.hidden = !setting.showType;
   itemMaxScoreField.hidden = !setting.showMaxScore;
+  itemExerciseCountField.hidden = !setting.showExerciseCount;
 
   populateTypeOptions(category);
 
@@ -369,6 +523,9 @@ function openEditRecordDialog(category, recordId) {
 
   if (category === "exams") {
     itemMaxScoreInput.value = String(record.maxScore ?? 20);
+  }
+  if (category === "exercises") {
+    itemExerciseCountInput.value = String(record.maxExercises ?? 1);
   }
 
   itemDialog.showModal();
@@ -392,6 +549,156 @@ function populateTypeOptions(category) {
   }
 }
 
+function initialiseHistoryNavigation() {
+  if (!yearSelector || !sectionSelector) return;
+
+  yearSelector.innerHTML = years.map(item => `
+    <option value="${escapeHtml(item.id)}" ${item.id === year.id ? "selected" : ""}>
+      ${escapeHtml(item.name)}
+    </option>
+  `).join("");
+
+  renderSectionSelector(year.id);
+
+  yearSelector.addEventListener("change", () => {
+    renderSectionSelector(yearSelector.value);
+
+    const firstSectionId = sectionSelector.value;
+    if (firstSectionId) {
+      navigateToSection(yearSelector.value, firstSectionId);
+    }
+  });
+
+  sectionSelector.addEventListener("change", () => {
+    if (sectionSelector.value) {
+      navigateToSection(yearSelector.value, sectionSelector.value);
+    }
+  });
+}
+
+function renderSectionSelector(selectedYearId) {
+  const selectedYear = years.find(item => item.id === selectedYearId);
+  const availableSections = selectedYear?.sections || [];
+
+  if (availableSections.length === 0) {
+    sectionSelector.innerHTML = '<option value="">Δεν υπάρχουν τμήματα</option>';
+    sectionSelector.disabled = true;
+    return;
+  }
+
+  sectionSelector.disabled = false;
+  sectionSelector.innerHTML = availableSections.map(item => `
+    <option value="${escapeHtml(item.id)}" ${selectedYearId === year.id && item.id === section.id ? "selected" : ""}>
+      ${escapeHtml(item.name)}
+    </option>
+  `).join("");
+}
+
+function navigateToSection(targetYearId, targetSectionId) {
+  if (targetYearId === year.id && targetSectionId === section.id) return;
+
+  window.location.href =
+    `section.html?yearId=${encodeURIComponent(targetYearId)}` +
+    `&sectionId=${encodeURIComponent(targetSectionId)}`;
+}
+
+function getSelectedDate() {
+  return workingDateInput.value || "";
+}
+
+function isDatedCategory(category) {
+  return category === "absences" || category === "exercises" || category === "participation";
+}
+
+function getRecordDate(record) {
+  if (record.date) return record.date;
+
+  const match = String(record.title || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
+}
+
+function getVisibleRecords(category) {
+  const records = (section.records[category] || []).filter(record => !record.hidden);
+  const selectedDate = getSelectedDate();
+
+  if (!selectedDate || !isDatedCategory(category)) return records;
+  return records.filter(record => getRecordDate(record) === selectedDate);
+}
+
+function getHiddenRecords(category) {
+  const selectedDate = getSelectedDate();
+  const records = (section.records[category] || []).filter(record => record.hidden);
+
+  if (!selectedDate || !isDatedCategory(category)) return records;
+  return records.filter(record => getRecordDate(record) === selectedDate);
+}
+
+function hideRecord(category, recordId) {
+  const record = section.records[category]?.find(item => item.id === recordId);
+  if (!record) return;
+
+  record.hidden = true;
+  saveYears();
+  renderAll();
+}
+
+function showRecord(category, recordId) {
+  const record = section.records[category]?.find(item => item.id === recordId);
+  if (!record) return;
+
+  record.hidden = false;
+  saveYears();
+  renderAll();
+}
+
+function renderHiddenRecords(category) {
+  const container = document.getElementById(`${category}-hidden-records`);
+  if (!container) return;
+
+  const hiddenRecords = getHiddenRecords(category);
+
+  if (hiddenRecords.length === 0) {
+    container.innerHTML = "";
+    container.hidden = true;
+    return;
+  }
+
+  container.hidden = false;
+  container.innerHTML = `
+    <span class="hidden-records-label">Κρυφές καταχωρίσεις:</span>
+    ${hiddenRecords.map(record => `
+      <button type="button" class="show-record-button" data-category="${category}" data-record-id="${record.id}">
+        + ${escapeHtml(record.title || "Καταχώριση")}${record.type ? ` · ${escapeHtml(record.type)}` : ""}
+      </button>
+    `).join("")}
+  `;
+
+  for (const button of container.querySelectorAll(".show-record-button")) {
+    button.onclick = () => showRecord(button.dataset.category, button.dataset.recordId);
+  }
+}
+
+function updateDateFilterInterface() {
+  const selectedDate = getSelectedDate();
+  showAllDatesButton.classList.toggle("active", !selectedDate);
+
+  dateFilterDescription.textContent = selectedDate
+    ? `Προβάλλονται μόνο οι καταχωρίσεις της ${formatDateForDisplay(selectedDate)}.`
+    : "Προβάλλονται όλες οι ημερομηνίες και τα συνολικά στατιστικά.";
+}
+
+function calculateParticipationAverage(student) {
+  const values = getVisibleRecords("participation")
+    .map(record => student.participation[record.id])
+    .filter(value => value !== "-" && value !== undefined && value !== null && value !== "")
+    .map(Number)
+    .filter(Number.isFinite);
+
+  return values.length
+    ? values.reduce((sum, value) => sum + value, 0) / values.length
+    : null;
+}
+
 function renderAll() {
   renderCategoryTable("absences");
   renderCategoryTable("exams");
@@ -401,16 +708,24 @@ function renderAll() {
 }
 
 function renderCategoryTable(category) {
-  const records = section.records[category];
+  const records = getVisibleRecords(category);
   const head = document.getElementById(`${category}-head`);
   const body = document.getElementById(`${category}-body`);
 
+  renderHiddenRecords(category);
+
   head.innerHTML = ` <tr> <th class="sticky-name-column">Μαθητής</th>
       ${records.map(record => ` <th> <div class="column-heading">
-            <button type="button" class="edit-record-button" data-category="${category}" data-record-id="${record.id}">${escapeHtml(record.title || "-")}</button>
+            ${category === "exams" || category === "exercises"
+              ? `<button type="button" class="edit-record-button" data-category="${category}" data-record-id="${record.id}">${escapeHtml(record.title || "-")}</button>`
+              : `<strong>${escapeHtml(record.title || "-")}</strong>`}
             ${record.type ? `<small>${escapeHtml(record.type)}</small>` : ""}
             ${category === "exams" ? `<small>Μέγιστο: ${formatNumber(record.maxScore || 20)}</small>` : ""}
-            <button type="button" class="remove-column-button" data-category="${category}" data-record-id="${record.id}" aria-label="Διαγραφή στήλης">×</button>
+            ${category === "exercises" ? `<small>Πλήθος: ${formatNumber(record.maxExercises || 1)}</small>` : ""}
+            <div class="column-action-buttons">
+              <button type="button" class="hide-record-button" data-category="${category}" data-record-id="${record.id}" aria-label="Απόκρυψη καταχώρισης" title="Απόκρυψη">−</button>
+              <button type="button" class="remove-column-button" data-category="${category}" data-record-id="${record.id}" aria-label="Διαγραφή στήλης" title="Διαγραφή">×</button>
+            </div>
           </div> </th>`).join("")} </tr> `;
 
   if (section.students.length === 0) {
@@ -438,11 +753,19 @@ function createCellControl(category, student, record) {
   }
 
   if (category === "exercises") {
+    const maxExercises = Math.max(1, Number(record.maxExercises) || 1);
+    const options = [
+      `<option value="-" ${value === "-" ? "selected" : ""}>−</option>`,
+      `<option value="0" ${Number(value) === 0 && value !== "-" ? "selected" : ""}>0</option>`,
+      ...Array.from({length: maxExercises}, (_, index) => {
+        const number = index + 1;
+        return `<option value="${number}" ${Number(value) === number ? "selected" : ""}>${number}</option>`;
+      })
+    ].join("");
+
     return `
-      <select class="cell-select compact-select" data-category="${category}" data-student-id="${student.id}" data-record-id="${record.id}">
-        <option value="-" ${value === "-" ? "selected" : ""}>−</option>
-        <option value="yes" ${value === "yes" ? "selected" : ""}>✓</option>
-        <option value="no" ${value === "no" ? "selected" : ""}>✕</option>
+      <select class="cell-select exercise-count-select" data-category="${category}" data-student-id="${student.id}" data-record-id="${record.id}">
+        ${options}
       </select>
     `;
   }
@@ -460,7 +783,10 @@ function connectTableControls() {
 
     select.onchange = () => {
       updateSelectColor(select);
-      updateStudentValue(select.dataset.category, select.dataset.studentId, select.dataset.recordId, select.value);
+      const value = select.dataset.category === "exercises" && select.value !== "-"
+        ? Number(select.value)
+        : select.value;
+      updateStudentValue(select.dataset.category, select.dataset.studentId, select.dataset.recordId, value);
     };
 
     select.onkeydown = handleTableArrowNavigation;
@@ -514,6 +840,10 @@ function connectTableControls() {
 
       updateStudentValue(category, studentId, recordId, number);
     };
+  }
+
+  for (const button of document.querySelectorAll(".hide-record-button")) {
+    button.onclick = () => {hideRecord(button.dataset.category, button.dataset.recordId);};
   }
 
   for (const button of document.querySelectorAll(".remove-column-button")) {
@@ -601,16 +931,16 @@ function renderStatistics() {
   const head = document.getElementById("statistics-head");
   const body = document.getElementById("statistics-body");
 
-  const exerciseTypes = uniqueTypes(section.records.exercises);
+  const exerciseTypes = uniqueTypes(getVisibleRecords("exercises"));
 
-  const examTypes = uniqueTypes(section.records.exams);
+  const examTypes = uniqueTypes(getVisibleRecords("exams"));
 
   const columns = [
     {
       key: "participation",
       label: "Μ.Ο. συμμετοχής",
       header: "Μ.Ο. συμμετοχής",
-      value: student => formatAverage(calculateNumericAverage(student.participation))
+      value: student => formatAverage(calculateParticipationAverage(student))
     },
 
     {
@@ -825,7 +1155,7 @@ function openStudentDetails(studentId) {
 }
 
 function createHistorySection(title, category, student) {
-  const records = section.records[category];
+  const records = getVisibleRecords(category);
 
   if (records.length === 0) {
     return `
@@ -940,23 +1270,11 @@ function formatHistoryValue(category, value, record = null) {
   }
 
   if (category === "exercises") {
-    if (value === "yes") {
-      return `
-        <span class="history-status status-yes">
-          ✓ Ναι
-        </span>
-      `;
-    }
+    const completed = Number(value);
+    const total = Number(record?.maxExercises ?? 1);
 
-    if (value === "no") {
-      return `
-        <span class="history-status status-no">
-          ✕ Όχι
-        </span>
-      `;
-    }
-
-    return "−";
+    if (!Number.isFinite(completed) || !Number.isFinite(total)) return "−";
+    return `${formatNumber(completed)}/${formatNumber(total)}`;
   }
 
   if (category === "exams") {
@@ -1010,7 +1328,7 @@ function normalizeExamGrade(value, maxScore) {
 }
 
 function calculateExamAverage(student, type) {
-  const relevantRecords = section.records.exams.filter(record => {
+  const relevantRecords = getVisibleRecords("exams").filter(record => {
   const recordType = record.type?.trim() || "-";
     return recordType === type;
   });
@@ -1046,7 +1364,7 @@ function calculateExamAverage(student, type) {
 function calculateOverallExamAverage(student) {
   const normalizedGrades = [];
 
-  for (const record of section.records.exams) {
+  for (const record of getVisibleRecords("exams")) {
     const value = student.exams[record.id];
 
     if (value === "-" || value === undefined || value === null || value === "") {
@@ -1071,46 +1389,44 @@ function calculateOverallExamAverage(student) {
 
 
 function calculateExerciseFraction(student, type) {
-  const recordIds =
-    section.records.exercises
-      .filter(record => {
-        const recordType =
-          record.type?.trim() || "Χωρίς τύπο";
+  const relevantRecords = getVisibleRecords("exercises").filter(record => {
+    const recordType = record.type?.trim() || "Χωρίς τύπο";
+    return recordType === type;
+  });
 
-        return recordType === type;
-      })
-      .map(record => record.id);
+  let completed = 0;
+  let total = 0;
+  let hasValue = false;
 
-  const values = recordIds
-    .map(id => student.exercises[id])
-    .filter(
-      value =>
-        value === "yes" ||
-        value === "no"
-    );
+  for (const record of relevantRecords) {
+    const value = student.exercises[record.id];
+    if (value === "-" || value === undefined || value === null || value === "") continue;
+    completed += Number(value) || 0;
+    total += Number(record.maxExercises) || 1;
+    hasValue = true;
+  }
 
-  const yesCount =
-    values.filter(value => value === "yes").length;
-
-  return values.length
-    ? `${yesCount}/${values.length}`
-    : "−";
+  return hasValue ? `${formatNumber(completed)}/${formatNumber(total)}` : "−";
 }
 
 function calculateOverallExerciseFraction(student) {
-  const values = section.records.exercises.map(record => student.exercises[record.id]).filter(value => value === "yes" || value === "no");
+  let completed = 0;
+  let total = 0;
+  let hasValue = false;
 
-  if (values.length === 0) {
-    return "−";
+  for (const record of getVisibleRecords("exercises")) {
+    const value = student.exercises[record.id];
+    if (value === "-" || value === undefined || value === null || value === "") continue;
+    completed += Number(value) || 0;
+    total += Number(record.maxExercises) || 1;
+    hasValue = true;
   }
 
-  const yesCount = values.filter(value => value === "yes").length;
-
-  return `${yesCount}/${values.length}`;
+  return hasValue ? `${formatNumber(completed)}/${formatNumber(total)}` : "−";
 }
 
 function calculateAbsences(student) {
-  const values = Object.values(student.absences);
+  const values = getVisibleRecords("absences").map(record => student.absences[record.id]);
   const justified = values.filter(value => value === "justified").length;
   const unjustified = values.filter(value => value === "unjustified").length;
   return { justified, unjustified, total: justified + unjustified };
@@ -1159,6 +1475,26 @@ function saveYears(updateDates = true) {
     STORAGE_KEY,
     JSON.stringify(years)
   );
+}
+
+function getTodayDateValue() {
+  const today = new Date();
+  const offset = today.getTimezoneOffset();
+  return new Date(today.getTime() - offset * 60000).toISOString().slice(0, 10);
+}
+
+function formatDateForDisplay(value) {
+  if (!value) return "−";
+  const [yearPart, monthPart, dayPart] = value.split("-");
+  return `${dayPart}/${monthPart}/${yearPart}`;
+}
+
+function getHighestExerciseValue(recordId) {
+  const values = section.students
+    .map(student => student.exercises[recordId])
+    .filter(value => value !== "-" && value !== undefined && value !== null && Number.isFinite(Number(value)))
+    .map(Number);
+  return values.length ? Math.max(...values) : null;
 }
 
 function createId() {
@@ -1282,6 +1618,121 @@ function handleTableArrowNavigation(event) {
     event.currentTarget,
     direction
   );
+}
+
+function createEmptyStudent(name) {
+  return {
+    id: createId(),
+    name,
+    absences: {},
+    exams: {},
+    exercises: {},
+    participation: {}
+  };
+}
+
+function normaliseExcelText(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("el");
+}
+
+function findStudentColumns(rows) {
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex] || [];
+    let surnameColumn = -1;
+    let firstNameColumn = -1;
+
+    row.forEach((cell, columnIndex) => {
+      const header = normaliseExcelText(cell);
+
+      if (header.includes("επωνυμο") && header.includes("μαθητ")) {
+        surnameColumn = columnIndex;
+      }
+
+      if (header.includes("ονομα") && header.includes("μαθητ") && !header.includes("πατερα") && !header.includes("μητερα")) {
+        firstNameColumn = columnIndex;
+      }
+    });
+
+    if (surnameColumn !== -1 && firstNameColumn !== -1) {
+      return {headerRow: rowIndex, surnameColumn, firstNameColumn};
+    }
+  }
+
+  return null;
+}
+
+async function importStudentsFromExcel(file) {
+  if (typeof XLSX === "undefined") {
+    throw new Error("Δεν φορτώθηκε η βιβλιοθήκη Excel. Ελέγξτε τη σύνδεση στο διαδίκτυο και δοκιμάστε ξανά.");
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const workbook = XLSX.read(arrayBuffer, {type: "array"});
+
+  let detected = null;
+
+  for (const sheetName of workbook.SheetNames) {
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+      header: 1,
+      defval: "",
+      raw: false
+    });
+
+    const columns = findStudentColumns(rows);
+
+    if (columns) {
+      detected = {rows, ...columns};
+      break;
+    }
+  }
+
+  if (!detected) {
+    throw new Error("Δεν βρέθηκαν οι στήλες «Επώνυμο μαθητή» και «Όνομα μαθητή» στο αρχείο.");
+  }
+
+  const existingNames = new Set(
+    section.students.map(student => normaliseExcelText(student.name))
+  );
+
+  let added = 0;
+  let duplicates = 0;
+
+  for (let rowIndex = detected.headerRow + 1; rowIndex < detected.rows.length; rowIndex += 1) {
+    const row = detected.rows[rowIndex] || [];
+    const surname = String(row[detected.surnameColumn] ?? "").trim();
+    const firstName = String(row[detected.firstNameColumn] ?? "").trim();
+
+    if (!surname && !firstName) continue;
+
+    const fullName = `${surname} ${firstName}`.replace(/\s+/g, " ").trim();
+    const normalisedName = normaliseExcelText(fullName);
+
+    if (!normalisedName) continue;
+
+    if (existingNames.has(normalisedName)) {
+      duplicates += 1;
+      continue;
+    }
+
+    section.students.push(createEmptyStudent(fullName));
+    existingNames.add(normalisedName);
+    added += 1;
+  }
+
+  if (added === 0 && duplicates === 0) {
+    throw new Error("Δεν βρέθηκαν μαθητές κάτω από τις επικεφαλίδες του αρχείου.");
+  }
+
+  if (added > 0) {
+    saveYears();
+  }
+
+  return {added, duplicates};
 }
 
 function updateModificationDates() {

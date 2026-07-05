@@ -1,29 +1,18 @@
 const STORAGE_KEY = "teacherAppYears";
-
 const yearsContainer = document.getElementById("years-container");
-
 const emptyState = document.getElementById("empty-state");
-
 const addYearButton = document.getElementById("add-year-button");
-
 const yearDialog = document.getElementById("year-dialog");
 const yearForm = document.getElementById("year-form");
 const yearNameInput = document.getElementById("year-name");
 const yearError = document.getElementById("year-error");
-
 const cancelYearButton = document.getElementById("cancel-year-button");
-
 const sectionDialog = document.getElementById("section-dialog");
-
 const sectionForm = document.getElementById("section-form");
-
 const sectionNameInput = document.getElementById("section-name");
-
 const sectionError = document.getElementById("section-error");
-
 const cancelSectionButton = document.getElementById("cancel-section-button");
 const importYearFileInput = document.getElementById("import-year-file");
-
 const importSectionFileInput = document.getElementById("import-section-file");
 
 let selectedYearId = null;

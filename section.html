@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title> Τμήμα </title>
   <link rel="stylesheet" href="style.css">
+  <script src="libs/xlsx.full.min.js" defer></script>
   <script src="section.js" defer></script>
 </head>
 <body>
@@ -19,9 +20,32 @@
       <h1 id="section-title"> Τμήμα </h1>
       <p id="year-title"> </p>
     </div>
+
+    <div class="history-navigation" aria-label="Επιλογή σχολικής χρονιάς και τμήματος">
+      <div class="history-navigation-field">
+        <label for="year-selector">Σχολική χρονιά</label>
+        <select id="year-selector" aria-label="Επιλογή σχολικής χρονιάς"></select>
+      </div>
+
+      <div class="history-navigation-field">
+        <label for="section-selector">Τμήμα</label>
+        <select id="section-selector" aria-label="Επιλογή τμήματος"></select>
+      </div>
+    </div>
   </header>
 
   <main class="page-container section-page">
+    <section class="date-toolbar" aria-labelledby="working-date-label">
+      <div>
+        <label id="working-date-label" for="working-date">Επεξεργασία ημερομηνίας</label>
+        <p id="date-filter-description">Προβάλλονται όλες οι ημερομηνίες και τα συνολικά στατιστικά.</p>
+      </div>
+      <div class="date-filter-controls">
+        <button id="show-all-dates-button" class="all-dates-button active" type="button">Όλες οι ημερομηνίες</button>
+        <input id="working-date" type="date" aria-label="Επιλογή συγκεκριμένης ημερομηνίας">
+      </div>
+    </section>
+
     <nav class="section-tabs" aria-label="Επιλογές τμήματος">
       <button class="tab-button active" data-tab="statistics"> Στατιστικά μαθητών </button>
       <button class="tab-button" data-tab="absences"> Απουσίες </button>
@@ -56,8 +80,9 @@
         <div>
           <h2> Απουσίες </h2>
         </div>
-        <button class="primary-action-button" data-add-item="absences" type="button"> + Ημερομηνία </button>
+        <button class="primary-action-button" data-add-item="absences" type="button"> + Καταχώριση </button>
       </div>
+      <div id="absences-hidden-records" class="hidden-records-bar" hidden></div>
       <div class="data-table-wrapper">
         <table class="data-table">
           <thead id="absences-head"></thead>
@@ -73,6 +98,7 @@
         </div>
         <button class="primary-action-button" data-add-item="exams" type="button"> + Γραπτό </button>
       </div>
+      <div id="exams-hidden-records" class="hidden-records-bar" hidden></div>
       <div class="data-table-wrapper">
         <table class="data-table">
           <thead id="exams-head"></thead>
@@ -86,8 +112,9 @@
         <div>
           <h2> Ασκήσεις </h2>
         </div>
-        <button class="primary-action-button" data-add-item="exercises" type="button">+ Άσκηση </button>
+        <button class="primary-action-button" data-add-item="exercises" type="button">+ Καταχώριση </button>
       </div>
+      <div id="exercises-hidden-records" class="hidden-records-bar" hidden></div>
       <div class="data-table-wrapper">
         <table class="data-table">
           <thead id="exercises-head"></thead>
@@ -101,8 +128,9 @@
         <div>
           <h2> Συμμετοχή </h2>
         </div>
-        <button class="primary-action-button" data-add-item="participation" type="button">+ Ημερομηνία </button>
+        <button class="primary-action-button" data-add-item="participation" type="button">+ Καταχώριση </button>
       </div>
+      <div id="participation-hidden-records" class="hidden-records-bar" hidden></div>
       <div class="data-table-wrapper">
         <table class="data-table">
           <thead id="participation-head"></thead>
@@ -116,8 +144,22 @@
     <form id="student-form">
       <h2> Προσθήκη μαθητή </h2>
       <label for="student-name"> Ονοματεπώνυμο </label>
-      <input id="student-name" type="text" autocomplete="off" required >
+      <input id="student-name" type="text" autocomplete="off" required>
       <p id="student-error" class="error-message"></p>
+
+      <div class="student-import-section">
+        <div class="import-separator"><span>ή</span></div>
+        <label for="student-excel-file" class="import-file-button student-excel-button">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path d="M12 16V4m0 0-5 5m5-5 5 5M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Εισαγωγή μαθητών από Excel</span>
+        </label>
+        <input id="student-excel-file" type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+        <p class="student-import-help">Αναγνωρίζει αυτόματα τις στήλες «Επώνυμο μαθητή» και «Όνομα μαθητή».</p>
+        <p id="student-import-status" class="student-import-status" aria-live="polite"></p>
+      </div>
+
       <div class="dialog-actions">
         <button id="cancel-student-button" class="secondary-button" type="button"> Ακύρωση </button>
         <button class="primary-button" type="submit"> Αποθήκευση </button>
@@ -129,8 +171,10 @@
     <form id="item-form">
       <h2 id="item-dialog-title"> Νέα καταχώριση </h2>
 
-      <label for="item-title"> Ημερομηνία ή τίτλος </label>
-      <input id="item-title" type="text" autocomplete="off">
+      <div id="item-title-field">
+        <label for="item-title"> Τίτλος </label>
+        <input id="item-title" type="text" autocomplete="off">
+      </div>
 
       <div id="item-type-field">
         <label for="item-type"> Τύπος </label>
@@ -140,8 +184,12 @@
 
       <div id="item-max-score-field" hidden>
         <label for="item-max-score">Μέγιστη βαθμολογία</label>
-
         <input id="item-max-score" type="number" min="0.01" step="any" value="20" placeholder="π.χ. 20 ή 100">
+      </div>
+
+      <div id="item-exercise-count-field" hidden>
+        <label for="item-exercise-count">Πλήθος ασκήσεων</label>
+        <input id="item-exercise-count" type="number" min="1" step="1" value="1" placeholder="π.χ. 5">
       </div>
       
       <p id="item-error" class="error-message"></p>
